@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="spring.mvc.bms_project.persistence.gBoardDAO">
+
+	<!-- 글 갯수 구하기 -->
+	<select id="getArticleCnt" resultType="int">
+		SELECT COUNT(*) FROM bms_board
+	</select>
+	
+	<!-- 게시글 목록 조회 -->
+	<select id="getArticleList" resultType="spring.mvc.bms_project.vo.gBoardVO">
+	<!-- 방법2. CDATA : 내부 주석은 밖으로 뺀다.
+	           CDATA 영역에 작성된 데이터는 단순한 문자데이터(Character DATA)이므로
+	           xml 파서가 처리하지 않고 ,데이터베이스에 그대로 전달하므로 발생하지 않는다.
+	-->
+	<![CDATA[
+		SELECT * FROM (SELECT num, writer, pwd, subject, content, readCnt,  
+					    ref, ref_step, ref_level, reg_date, rownum rNum 
+					  FROM (
+					     	   SELECT * FROM bms_board  
+					     	   ORDER BY ref DESC, ref_step ASC )) 
+		WHERE rNUM >= #{start} AND rNUM <= #{end}
+	]]>
+	</select>
+	
+	<!-- 상세조회, 상세페이지 -->
+	<select id="getArticle" parameterType="int" resultType="spring.mvc.bms_project.vo.gBoardVO">
+		SELECT * FROM bms_board WHERE num=#{num}
+	</select>
+	
+	<!-- 조회수증가 -->
+	<update id="addReadCnt" parameterType="int">
+		UPDATE bms_board SET readCnt = readCnt + 1 WHERE num=#{num}
+	</update>
+	
+	<!-- 비밀번호 확인 (글수정, 글삭제)-->
+	<select id="pwdCheck" resultType="int">
+		SELECT count(*) FROM bms_board WHERE num=#{num} AND pwd=#{strPwd}
+	</select>
+	
+	<!-- 글 수정 -->
+	<update id="updateBoard" parameterType="spring.mvc.bms_project.vo.gBoardVO">
+		UPDATE bms_board set subject=#{subject} , content=#{content}, pwd=#{pwd} WHERE num=#{num}
+	</update>
+	
+	<!-- 글쓰기 start -->
+	<!-- 답변글이 아닌 경우(제목글인 경우) -->
+	<select id="getMaxNum" resultType="int">
+		SELECT MAX(num) FROM bms_board
+	</select>
+	
+	<!-- 답변글인 경우 -->
+	<update id="updateReply" parameterType="spring.mvc.bms_project.vo.gBoardVO">
+		<![CDATA[
+		UPDATE bms_board SET ref_step = ref_step+1 WHERE ref=#{ref} AND ref_step > #{ref_step}
+		]]>
+	</update>
+	
+	<insert id="insertBoard" parameterType="spring.mvc.bms_project.vo.gBoardVO">
+		INSERT INTO bms_board(num, writer, pwd, subject, content, 
+							  readCnt, ref, ref_step, ref_level, reg_date) 
+		VALUES (board_seq.NEXTVAL, #{writer}, #{pwd}, #{subject}, #{content}, 
+					          0, #{ref}, #{ref_step}, #{ref_level}, #{reg_date})
+	</insert>
+	<!-- 글쓰기 end -->
+	
+	<!-- 글삭제 start -->
+	<select id="checkReply" resultType="int">
+		<![CDATA[
+		SELECT count(*) FROM bms_board WHERE ref=#{ref} AND ref_step=#{ref_step}+1 AND ref_level > #{ref_level}
+		]]>
+	</select>
+	
+	<!-- 답글이 없는 경우 삭제(제목글, 답글없는 답글) -->
+	<update id="updateRef_step" parameterType="spring.mvc.bms_project.vo.gBoardVO">
+		<![CDATA[
+		UPDATE bms_board SET ref_step=ref_step-1 WHERE ref=#{ref} AND ref_step > #{ref_step}
+		]]>
+	</update>
+	
+	<!-- 답글이 없는 경우 삭제  -->
+	<delete id="deleteBoard" parameterType="int">
+		DELETE FROM bms_board WHERE num = #{num}
+	</delete>
+	
+	<!-- 글삭제 end -->
+
+</mapper>    

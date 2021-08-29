@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="spring.mvc.bms_project.persistence.gMemberDAO">
+	<!-- 중복확인 -->
+	<select id="idCheck" parameterType="String" resultType="int">
+		SELECT count(*) FROM bms_member WHERE id=#{strId} 
+	</select><!-- parameterType="String"은 생략가능 -->
+	
+	<!-- 회원가입 -->
+	<insert id="insertMember" parameterType="spring.mvc.bms_project.vo.gMemberVO"> 
+		INSERT INTO bms_member(id, pwd, name, jumin1, jumin2, hp, email, reg_date) 
+		values(#{id},#{pwd},#{name},#{jumin1},#{jumin2},#{hp},#{email},#{reg_date})
+	</insert>
+	
+	<!-- 로그인, 정보수정, 정보삭제 -->
+	<select id="pwdCheck" parameterType="java.util.Map" resultType="int"> <!-- #{map의 키} -->
+		SELECT count(*) FROM bms_member WHERE id=#{strId} AND pwd=#{strPwd}
+	</select>
+	
+	<!-- 회원탈퇴 -->
+	<delete id="memberDelete" parameterType="String">
+		DELETE FROM bms_member WHERE id=#{strId}
+	</delete>
+	
+	<!-- 회원정보 상세 페이지 -->
+	<select id="getMemberInfo" resultType="spring.mvc.bms_project.vo.gMemberVO">
+		SELECT * FROM bms_member WHERE id=#{strId}
+	</select>
+
+	<!-- 회원정보 수정 -->
+	<update id="updateMember" parameterType="spring.mvc.bms_project.vo.gMemberVO">
+		UPDATE bms_member SET pwd=#{pwd}, name=#{name}, hp=#{hp}, email=#{email} WHERE id=#{id}
+	</update>
+
+
+
+
+
+
+</mapper>    

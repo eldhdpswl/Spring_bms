@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+    
+<mapper namespace="spring.mvc.bms_project.persistence.guestCartDAO">
+	
+	<!-- 책갯수 구하기 -->
+	<select id="getArticleCnt" resultType="int">
+		SELECT COUNT(*) FROM book
+	</select>
+	
+	<!-- 책목록 목록 조회 -->
+	<select id="getArticleList" resultType="spring.mvc.bms_project.vo.guestCartVO">
+		<![CDATA[
+			SELECT * 
+					FROM(SELECT bookNum, kimg, bookName, author, publisher, content, price,  
+				    			bookforeign, bookcount, reg_date, rownum rNum
+				     	   FROM ( 
+				     				SELECT * FROM book  
+				     			 )
+				     	 )  
+				    WHERE rNUM >= #{start}  AND rNUM <= #{end}
+		]]>
+	</select>
+	
+	
+	<!-- 상세페이지 -->
+	<select id="getArticle" resultType="spring.mvc.bms_project.vo.guestCartVO" >
+		SELECT * FROM book WHERE bookNum=#{bookNum}
+	</select>
+	
+	<!-- 장바구니 cart테이블 불러오기 -->
+	<select id="selectcart" resultType="int" parameterType="int">
+		SELECT cartcount FROM cart WHERE bookNum=#{bookNum}
+	</select>
+	
+	<!-- 장바구니 업데이트  -->
+	<update id="updatecount" parameterType="java.util.Map">
+		UPDATE cart SET cartcount = #{cartcount} WHERE bookNum=#{bookNum}
+	</update>
+	
+	<insert id="insertcount" parameterType="spring.mvc.bms_project.vo.cartAddVO">
+		INSERT INTO cart(cartNum, id, bookNum, cartcount) VALUES (cart_seq.NEXTVAL, #{id}, #{bookNum}, #{cartcount})
+	</insert>
+	
+	<!-- 장바구니 책 갯수 구하기 -->
+	<select id="getCartArticleCnt" resultType="int">
+		SELECT COUNT(*) FROM cart
+	</select>
+	
+	<!-- 장바구니 목록 조회 -->
+	<select id="getCartArticleList" resultType="spring.mvc.bms_project.vo.guestCartVO">
+		SELECT 
+				c.cartNum AS cartNum, 
+				c.bookNum AS bookNum, 
+				b.kimg AS kimg,  
+				b.bookname AS bookname, 
+				b.price AS price,
+				c.cartcount AS bookcount 
+				FROM cart c JOIN book b 
+				ON c.bookNum=b.bookNum
+				WHERE id=#{memId}
+	</select>
+	
+	<!-- 구매단으로 넘길때 장바구니 목록 조회하기/////////////// -->
+	<!-- <select id="getCartInfo" resultType="spring.mvc.bms_project.vo.guestCartVO">
+		SELECT * FROM cart WHERE cartNum=#{cartNum}
+	</select> -->
+	
+	<select id="getCart" parameterType="int" resultType="spring.mvc.bms_project.vo.cartAddVO">
+		SELECT * FROM cart WHERE cartNum=#{cartNum}
+	</select>
+	
+	<!-- pay테이블에 추가 -->
+	<!-- <insert id="insertpay" parameterType="spring.mvc.bms_project.vo.guestCartVO">
+		INSERT INTO pay(payNum, bookNum, bookcount, id, step) 
+				 VALUES(pay_seq.nextval,#{bookNum},#{bookcount},#{id},1)
+	</insert> -->
+	
+	<insert id="iPay" parameterType="spring.mvc.bms_project.vo.cartAddVO">
+		INSERT INTO pay(payNum, bookNum, bookcount, id, step) VALUES(pay_seq.nextval,#{bookNum},#{cartcount},#{id},1)
+	</insert>
+	
+	<update id="BCUpdate" parameterType="spring.mvc.bms_project.vo.cartAddVO">
+		UPDATE book SET bookcount = bookcount-#{cartcount} WHERE booknum=#{bookNum}
+	</update>
+	
+	<!-- 데이터수 가져오기 -->
+	<select id="payNum" parameterType="String" resultType="int">
+		SELECT COUNT(paynum) as count FROM pay WHERE id=#{memid} and step!=4
+	</select>
+	
+	<!-- cart테이블에 있는 정보들을 delete -->
+	<delete id="Dcart" parameterType="spring.mvc.bms_project.vo.cartAddVO">
+		DELETE FROM cart WHERE cartNum=#{cartNum}
+	</delete>
+	
+	<!-- pay정보불러오기 -->
+	<select id="getPayList" parameterType="java.util.Map" resultType="spring.mvc.bms_project.vo.guestCartVO">
+		SELECT 
+				p.payNum AS payNum, 
+				p.bookNum AS bookNum,p.step as step, 
+				p.id as id,  
+				b.kimg AS kimg,  
+				b.bookName AS bookName, 
+				b.price AS price, 
+				p.bookcount AS bookcount
+				FROM book b JOIN pay p 
+				ON b.bookNum = p.bookNum
+				WHERE p.id=#{memId}
+	</select>
+	<!-- 여기선 memId로 해놨으니까 못찾았죠 -->
+	
+	<!-- 구매목록에서 결재하기할때 payNum체크하기 -->
+	<select id="selectPayNum" parameterType="spring.mvc.bms_project.vo.guestCartVO" resultType="int">
+		SELECT count(*) FROM pay WHERE payNum=#{payNum}
+	</select>
+	
+	<!-- 장바구니테이블에 데이터가 있을때 -->
+	<update id="UPpay" parameterType="spring.mvc.bms_project.vo.guestCartVO">
+		UPDATE pay SET step = 2 WHERE payNum=#{payNum}
+	</update>
+	
+	<!-- 환불요청했을떄 update -->
+	<update id="refund" parameterType="int">
+		UPDATE pay SET step=3 WHERE payNum=#{payNum}
+	</update>
+	
+	<!-- 1. pay에 정보넣기 -->
+	<!-- 바로구매할떄 pay에 insert -->
+	<insert id="insertdirectpay" parameterType="java.util.Map">
+		INSERT INTO pay(payNum, bookNum, bookcount, id, step) VALUES(pay_seq.nextval,#{bookNum},#{bookcount},#{id},1)
+	</insert>
+	
+	<!-- 2. book에서 재고빼기 -->
+	<!-- 바로구매할떄 pay에 update -->
+	<update id="directpayupdate" parameterType="java.util.Map">
+		UPDATE book SET bookcount=bookcount-#{bookcount} WHERE bookNum=#{bookNum}
+	</update>
+	
+	<select id="selectBCount" parameterType="java.util.Map" resultType="int">
+		SELECT bookcount FROM book where bookNum=#{bookNum}
+	</select>
+	
+	<!-- 구매취소할때 도서 수량 update -->
+	<update id="paycancel" parameterType="java.util.Map">
+		UPDATE book SET bookcount=bookcount+#{bookcount} WHERE bookNum=#{bookNum}
+	</update>
+	
+	<!-- 구매취소할떄 pay에서 list삭제 -->
+	<delete id="paylistdelete" parameterType="int">
+		DELETE FROM pay WHERE payNum=#{payNum}
+	</delete>
+	
+	
+	
+</mapper>    
